@@ -3,9 +3,12 @@
 
 #include <pthread.h>
 
-template <typename ObjectType, typename CountType = unsigned int>
+template <typename T, typename U = unsigned int>
 class SharedPtr
 {
+        typedef T ObjectType;
+        typedef U CountType;
+
         ObjectType* object;
         CountType* counter;
 
