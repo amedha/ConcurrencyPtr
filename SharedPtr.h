@@ -2,6 +2,7 @@
 #define __SHAREDPTR_H__
 
 #include <pthread.h>
+#include <algorithm>
 
 template <typename T, typename U = unsigned int>
 class SharedPtr
@@ -53,6 +54,21 @@ class SharedPtr
                 pthread_mutex_destroy(_mutex);
                 delete _mutex;
             }
+        }
+
+        friend void swap(SharedPtr& spl, SharedPtr& spr)
+        {
+            using std::swap;
+
+            swap(spl.object, spr.object);
+            swap(spl.counter, spr.counter);
+        }
+
+        SharedPtr& operator=(SharedPtr sp)
+        {
+            swap(*this, sp);
+
+            return *this;
         }
 };
 
