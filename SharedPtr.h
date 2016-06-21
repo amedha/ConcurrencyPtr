@@ -23,35 +23,38 @@ class SharedPtr
         {
             if (!cnt)
             {
-                cnt = new CountType;
+                cnt = new CountType();
             }
+
+            counter = cnt;
+            ++(*counter);
 
             pthread_mutex_init(_mutex, 0);
         }
 
-        SharedPtr(const SharedPtr& cPtr) : object(cPtr->object), counter(cPtr->counter), _mutex(cPtr->_mutex)
+        SharedPtr(const SharedPtr& cPtr) : object(cPtr.object), counter(cPtr.counter), _mutex(cPtr._mutex)
         {
             pthread_mutex_lock(_mutex);
 
-            (*counter)++;
+            ++(*counter);
 
             pthread_mutex_unlock(_mutex);
         }
 
         ~SharedPtr()
         {
-            bool destroy_mutex = false;
+            bool destroy = false;
 
             pthread_mutex_lock(_mutex);
 
             if ( (--(*counter)) == 0 )
             {
-                destroy_mutex = true;
+                destroy = true;
             }
 
             pthread_mutex_unlock(_mutex);
 
-            if (destroy_mutex)
+            if (destroy)
             {
                 delete counter;
                 delete object;
@@ -77,12 +80,12 @@ class SharedPtr
             return *this;
         }
 
-        SharedPtr& operator*()
+        T& operator*() const
         {
             return *object;
         }
 
-        SharedPtr& operator->()
+        T* operator->() const
         {
             return object;
         }
