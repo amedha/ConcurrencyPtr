@@ -15,9 +15,9 @@ class SharedPtr
 
         pthread_mutex_t* _mutex;
 
+        SharedPtr();
+
     public:
-    
-        SharedPtr() : object(0), counter(0) {}
 
         SharedPtr(ObjectType* obj, CountType* cnt = 0) : object(obj), _mutex(new pthread_mutex_t)
         {
@@ -31,7 +31,11 @@ class SharedPtr
 
         SharedPtr(const SharedPtr& cPtr) : object(cPtr->object), counter(cPtr->counter), _mutex(cPtr->_mutex)
         {
+            pthread_mutex_lock(_mutex);
+
             (*counter)++;
+
+            pthread_mutex_unlock(_mutex);
         }
 
         ~SharedPtr()
@@ -42,8 +46,6 @@ class SharedPtr
 
             if ( (--(*counter)) == 0 )
             {
-                delete counter;
-                delete object;
                 destroy_mutex = true;
             }
 
@@ -51,6 +53,9 @@ class SharedPtr
 
             if (destroy_mutex)
             {
+                delete counter;
+                delete object;
+
                 pthread_mutex_destroy(_mutex);
                 delete _mutex;
             }
@@ -62,6 +67,7 @@ class SharedPtr
 
             swap(spl.object, spr.object);
             swap(spl.counter, spr.counter);
+            swap(spl._mutex, spr._mutex);
         }
 
         SharedPtr& operator=(SharedPtr sp)
@@ -69,6 +75,16 @@ class SharedPtr
             swap(*this, sp);
 
             return *this;
+        }
+
+        SharedPtr& operator*()
+        {
+            return *object;
+        }
+
+        SharedPtr& operator->()
+        {
+            return object;
         }
 };
 
