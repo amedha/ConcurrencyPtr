@@ -4,14 +4,13 @@
 #include <pthread.h>
 #include <algorithm>
 
-template <typename T, typename U = unsigned int>
+template <typename T>
 class SharedPtr
 {
         typedef T ObjectType;
-        typedef U CountType;
 
         ObjectType* object;
-        CountType* counter;
+        unsigned int* counter;
 
         pthread_mutex_t* _mutex;
 
@@ -19,14 +18,12 @@ class SharedPtr
 
     public:
 
-        SharedPtr(ObjectType* obj, CountType* cnt = 0) : object(obj), _mutex(new pthread_mutex_t)
+        SharedPtr(ObjectType* obj) : object(obj), _mutex(new pthread_mutex_t)
         {
-            if (!cnt)
-            {
-                cnt = new CountType();
-            }
+            std::cout << "Constructor" << std::endl;
 
-            counter = cnt;
+            counter = new unsigned int;
+
             ++(*counter);
 
             pthread_mutex_init(_mutex, 0);
@@ -34,6 +31,8 @@ class SharedPtr
 
         SharedPtr(const SharedPtr& cPtr) : object(cPtr.object), counter(cPtr.counter), _mutex(cPtr._mutex)
         {
+            std::cout << "Copy Constructor" << std::endl;
+
             pthread_mutex_lock(_mutex);
 
             ++(*counter);
@@ -43,25 +42,22 @@ class SharedPtr
 
         ~SharedPtr()
         {
-            bool destroy = false;
+            std::cout << "Destructor" << std::endl;
 
             pthread_mutex_lock(_mutex);
 
             if ( (--(*counter)) == 0 )
             {
-                destroy = true;
-            }
+                std::cout << "Final destruction" << std::endl;
 
-            pthread_mutex_unlock(_mutex);
-
-            if (destroy)
-            {
                 delete counter;
                 delete object;
 
-                pthread_mutex_destroy(_mutex);
-                delete _mutex;
+                counter = 0;
+                object = 0;
             }
+
+            pthread_mutex_unlock(_mutex);
         }
 
         friend void swap(SharedPtr& spl, SharedPtr& spr)
