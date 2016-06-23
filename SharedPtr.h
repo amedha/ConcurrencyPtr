@@ -10,54 +10,42 @@ class SharedPtr
         typedef T ObjectType;
 
         ObjectType* object;
-        unsigned int* counter;
-
-        pthread_mutex_t* _mutex;
+        int* counter;
 
         SharedPtr();
 
-    public:
-
-        SharedPtr(ObjectType* obj) : object(obj), _mutex(new pthread_mutex_t)
+        inline int
+        fetch_and_add(
+            int* counter,
+            int value)
         {
-            std::cout << "Constructor" << std::endl;
-
-            counter = new unsigned int;
-
-            ++(*counter);
-
-            pthread_mutex_init(_mutex, 0);
+            int old_value = value;
+            asm volatile("lock; xaddl %%eax, %2;" : "=a" (value) : "a" (value), "m" (*counter) : "memory");
+            return value + old_value;
         }
 
-        SharedPtr(const SharedPtr& cPtr) : object(cPtr.object), counter(cPtr.counter), _mutex(cPtr._mutex)
+    public:
+
+        SharedPtr(ObjectType* obj) : object(obj)
         {
-            std::cout << "Copy Constructor" << std::endl;
-
-            pthread_mutex_lock(_mutex);
-
+            counter = new int;
             ++(*counter);
+        }
 
-            pthread_mutex_unlock(_mutex);
+        SharedPtr(const SharedPtr& cPtr) : object(cPtr.object), counter(cPtr.counter)
+        {
+            fetch_and_add(counter, 1);
         }
 
         ~SharedPtr()
         {
-            std::cout << "Destructor" << std::endl;
+            int _counter = fetch_and_add(counter, -1);
 
-            pthread_mutex_lock(_mutex);
-
-            if ( (--(*counter)) == 0 )
+            if ( _counter == 0 )
             {
-                std::cout << "Final destruction" << std::endl;
-
                 delete counter;
                 delete object;
-
-                counter = 0;
-                object = 0;
             }
-
-            pthread_mutex_unlock(_mutex);
         }
 
         friend void swap(SharedPtr& spl, SharedPtr& spr)
