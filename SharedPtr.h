@@ -9,15 +9,12 @@ class SharedPtr
 {
         typedef T ObjectType;
 
+    public:
+
         ObjectType* object;
         int* counter;
 
-        SharedPtr();
-
-        inline int
-        fetch_and_add(
-            int* counter,
-            int value)
+        inline int fetch_and_add(int* counter, int value)
         {
             int old_value = value;
             asm volatile("lock; xaddl %%eax, %2;" : "=a" (value) : "a" (value), "m" (*counter) : "memory");
@@ -26,13 +23,20 @@ class SharedPtr
 
     public:
 
+        SharedPtr() : object(0), counter(0) {}
+
         SharedPtr(ObjectType* obj) : object(obj)
         {
-            counter = new int;
-            ++(*counter);
+            counter = new int(1);
         }
 
         SharedPtr(const SharedPtr& cPtr) : object(cPtr.object), counter(cPtr.counter)
+        {
+            fetch_and_add(counter, 1);
+        }
+
+        template <typename U>
+        SharedPtr(const SharedPtr<U>& cPtr) : object(cPtr.object), counter(cPtr.counter)
         {
             fetch_and_add(counter, 1);
         }
@@ -43,6 +47,7 @@ class SharedPtr
 
             if ( _counter == 0 )
             {
+                std::cout << "Final destruction" << std::endl;
                 delete counter;
                 delete object;
             }
@@ -54,7 +59,6 @@ class SharedPtr
 
             swap(spl.object, spr.object);
             swap(spl.counter, spr.counter);
-            swap(spl._mutex, spr._mutex);
         }
 
         SharedPtr& operator=(SharedPtr sp)
@@ -69,9 +73,19 @@ class SharedPtr
             return *object;
         }
 
-        T* operator->() const
+        T* operator->()
         {
             return object;
+        }
+
+        const T* operator->() const
+        {
+            return object;
+        }
+
+        friend inline bool operator==(const SharedPtr& spl, const SharedPtr& spr)
+        {
+            return spl.object == spr.object;
         }
 };
 
