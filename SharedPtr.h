@@ -4,6 +4,7 @@
 #include <pthread.h>
 #include <algorithm>
 
+
 template <typename T>
 class SharedPtr
 {
@@ -30,13 +31,7 @@ class SharedPtr
             counter = new int(1);
         }
 
-        SharedPtr(const SharedPtr& cPtr) : object(cPtr.object), counter(cPtr.counter)
-        {
-            fetch_and_add(counter, 1);
-        }
-
-        template <typename U>
-        SharedPtr(const SharedPtr<U>& cPtr) : object(cPtr.object), counter(cPtr.counter)
+        SharedPtr(const SharedPtr<T>& sPtr) : object(sPtr.object), counter(sPtr.counter)
         {
             fetch_and_add(counter, 1);
         }
@@ -47,23 +42,22 @@ class SharedPtr
 
             if ( _counter == 0 )
             {
-                std::cout << "Final destruction" << std::endl;
                 delete counter;
+                counter = 0;
                 delete object;
+                object = 0;
             }
         }
 
-        friend void swap(SharedPtr& spl, SharedPtr& spr)
+        void swap(SharedPtr<T>& sPtr)
         {
-            using std::swap;
-
-            swap(spl.object, spr.object);
-            swap(spl.counter, spr.counter);
+            std::swap(object, sPtr.object);
+            std::swap(counter, sPtr.counter);
         }
 
-        SharedPtr& operator=(SharedPtr sp)
+        SharedPtr<T>& operator=(SharedPtr<T> sp)
         {
-            swap(*this, sp);
+            swap(sp);
 
             return *this;
         }
@@ -83,10 +77,39 @@ class SharedPtr
             return object;
         }
 
+        bool operator!() const
+        {
+            return !object;
+        }
+
+        operator bool() const
+        {
+            return (bool)object;
+        }
+
         friend inline bool operator==(const SharedPtr& spl, const SharedPtr& spr)
         {
             return spl.object == spr.object;
         }
+
+        friend inline bool operator!=(const SharedPtr& spl, const SharedPtr& spr)
+        {
+            return spl.object != spr.object;
+        }
 };
+
+class SharedNullPtr
+{
+    public:
+
+        template<typename U>
+        operator SharedPtr<U>()
+        {
+            return SharedPtr<U>();
+        }
+};
+
+extern SharedNullPtr nullPtr;
+
 
 #endif //__SHAREDPTR_H__
