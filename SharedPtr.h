@@ -25,7 +25,7 @@ class SharedPtr
 
     public:
 
-        SharedPtr() : object(0), counter(0)
+        SharedPtr() : object(NULL), counter(NULL)
         {
             std::cout << "Default Constructor" << std::endl;
         }
@@ -33,38 +33,48 @@ class SharedPtr
         SharedPtr(BaseType* obj) : object(obj)
         {
             counter = new int(1);
+            std::cout << "Constructor New: counter_value: " << *counter << " counter_addr: " << counter << " object_addr: " << object << std::endl;
         }
 
         SharedPtr(const SharedPtr<BaseType>& sPtr) : object(sPtr.object), counter(sPtr.counter)
         {
+            std::cout << "Copy Constructor before: counter_value: " << *counter << " counter_addr: " << counter << " object_addr: " << object << std::endl;
             fetch_and_add(counter, 1);
-            std::cout << "Copy Constructor Base" << std::endl;
+            std::cout << "Copy Constructor after: counter_value: " << *counter << " counter_addr: " << counter << " object_addr: " << object << std::endl;
         }
 
         template <typename DerivedType>
-        SharedPtr(const SharedPtr<DerivedType>& sPtr) : object(sPtr.object), counter(sPtr.counter)
+        SharedPtr(const SharedPtr<DerivedType>& sPtr) : /*object(sPtr.object),*/ counter(sPtr.counter)
         {
+            object = dynamic_cast<BaseType*>(sPtr.object);
+            std::cout << "Copy Constructor Derived before: counter_value: " << *counter << " counter_addr: " << counter << " object_addr: " << object << std::endl;
             fetch_and_add(counter, 1);
-            std::cout << "Copy Constructor Derived" << std::endl;
+            std::cout << "Copy Constructor Derived after: counter_value: " << *counter << " counter_addr: " << counter << " object_addr: " << object << std::endl;
         }
 
         ~SharedPtr()
         {
             if (!counter) return;
-
+            
+            std::cout << "Descteruction before: counter_value: " << *counter << " counter_addr: " << counter << " object_addr: " << object << std::endl;
             int _counter = fetch_and_add(counter, -1);
+            std::cout << "Descteruction after: counter_value: " << *counter << " counter_addr: " << counter << " object_addr: " << object << std::endl;
 
             if ( _counter == 0 )
             {
+                std::cout << "Final Destruction begin: counter_addr: " << counter << std::endl;
                 delete counter;
-                counter = 0;
+                counter = NULL;
                 delete object;
-                object = 0;
+                object = NULL;
+                std::cout << "Final Destruction end: counter_addr: " << counter << std::endl;
             }
         }
 
         SharedPtr<BaseType>& operator=(SharedPtr<BaseType> sp)
         {
+            std::cout << "operator= base" << std::endl;
+
             swap(sp);
 
             return *this;
@@ -73,6 +83,8 @@ class SharedPtr
         template <typename DerivedType>
         SharedPtr<BaseType>& operator=(SharedPtr<DerivedType> sp)
         {
+            std::cout << "operator= derived" << std::endl;
+
             swap(sp);
 
             return *this;
@@ -124,6 +136,25 @@ class SharedPtr
         friend inline bool operator!=(const SharedPtr& spl, const SharedPtr& spr)
         {
             return spl.object != spr.object;
+        }
+
+        bool isNull()
+        {
+            if (counter == NULL)
+                return true;
+            return false;
+        }
+
+        bool isNotNull()
+        {
+            if (counter == NULL)
+                return false;
+            return true;
+        }
+
+        T* get()
+        {
+            return object;
         }
 };
 
